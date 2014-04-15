@@ -5,10 +5,6 @@
 
 // TODO: thread cleanup (thread_cleanup_[push|pop]) ?
 
-#include <CThread.h>
-#include <CFuncs.h>
-#include <CThrow.h>
-
 extern "C" {
 #include <sys/shm.h>
 #include "pthread.h"
@@ -19,7 +15,11 @@ extern "C" {
 #include <cstdarg>
 #include <cerrno>
 #include <cstdio>
-#include <csignal>
+#include <unistd.h>
+
+#include <CThread.h>
+#include <CFuncs.h>
+#include <CThrow.h>
 
 using std::string;
 using std::list;
