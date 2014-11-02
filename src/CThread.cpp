@@ -7,7 +7,7 @@
 
 extern "C" {
 #include <sys/shm.h>
-#include "pthread.h"
+#include <pthread.h>
 }
 
 #include <algorithm>
