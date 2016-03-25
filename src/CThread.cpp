@@ -437,7 +437,7 @@ executeCB(void *data)
   CThread *thread = (CThread *) data;
 
   return thread->execute();
-};
+}
 
 bool
 CThread::
