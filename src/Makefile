@@ -24,6 +24,14 @@ CPP_OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CPP_SRC))
 
 C_OBJS = $(patsubst %.c,$(OBJ_DIR)/%.o,$(C_SRC))
 
+CPPFLAGS = \
+-std=c++11 \
+$(CDEBUG) \
+-I$(INC_DIR) \
+-I../../CThread/include \
+-I../../CUtil/include \
+-I. \
+
 CFLAGS = \
 $(CDEBUG) \
 -I$(INC_DIR) \
@@ -38,7 +46,7 @@ clean:
 .SUFFIXES: .cpp
 
 $(CPP_OBJS): $(OBJ_DIR)/%.o: %.cpp
-	$(CPP_CC) -c $< -o $(OBJ_DIR)/$*.o $(CFLAGS)
+	$(CPP_CC) -c $< -o $(OBJ_DIR)/$*.o $(CPPFLAGS)
 
 $(C_OBJS): $(OBJ_DIR)/%.o: %.c
 	$(C_CC) -c $< -o $(OBJ_DIR)/$*.o $(CFLAGS)
