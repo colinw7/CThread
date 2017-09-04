@@ -10,7 +10,6 @@ extern "C" {
 #include <pthread.h>
 }
 
-#include <algorithm>
 #include <cstring>
 #include <cstdarg>
 #include <cerrno>
@@ -18,7 +17,6 @@ extern "C" {
 #include <unistd.h>
 
 #include <CThread.h>
-#include <CFuncs.h>
 #include <CThrow.h>
 
 using std::string;
@@ -41,6 +39,8 @@ bool                CThreadCondition::debug_       = false;
 
 static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
+//------
+
 CThreadOnce::
 CThreadOnce(OnceProc proc) :
  proc_(proc)
@@ -55,9 +55,11 @@ exec()
   pthread_once(&once_, proc_);
 }
 
+//------
+
 CThreadArray::
 CThreadArray(int n) :
- n_(n), num_active_(0)
+ n_(n)
 {
   thread_mutex_ = new CThreadMutex("thread_mutex");
   alive_mutex_  = new CThreadMutex("alive_mutex");
@@ -72,11 +74,14 @@ CThreadArray::
   delete alive_mutex_;
   delete thread_cond_;
 
-  std::for_each(procs_.begin(), procs_.end(), CDeletePointer());
+  for (auto &proc : procs_)
+    delete proc;
 
-  std::for_each(alive_threads_.begin(), alive_threads_.end(), CDeletePointer());
+  for (auto &alive_thread : alive_threads_)
+    delete alive_thread;
 
-  std::for_each(dead_threads_.begin(), dead_threads_.end(), CDeletePointer());
+  for (auto &dead_thread : dead_threads_)
+    delete dead_thread;
 }
 
 void
@@ -127,7 +132,7 @@ startThread1(CThreadArrayProc *proc)
     if (! alive_mutex_->lock())
       return false;
 
-    joinDeadThreads(NULL);
+    joinDeadThreads(nullptr);
 
     alive_mutex_->unlock();
   }
@@ -187,7 +192,7 @@ endThread(CThread *thread)
 
   thread_mutex_->unlock();
 
-  thread->exit(NULL);
+  thread->exit(nullptr);
 
   return true;
 }
@@ -227,7 +232,8 @@ void
 CThreadArray::
 deleteArrayProcs()
 {
-  std::for_each(procs_.begin(), procs_.end(), CDeletePointer());
+  for (auto &proc : procs_)
+    delete proc;
 
   procs_.clear();
 }
@@ -263,7 +269,7 @@ bool
 CThreadArray::
 getDeadThreads(CThread ***dead_threads, int *num_dead_threads)
 {
-  *dead_threads     = NULL;
+  *dead_threads     = nullptr;
   *num_dead_threads = dead_threads_.size();
 
   if (*num_dead_threads > 0) {
@@ -328,7 +334,7 @@ bool
 CThreadArray::
 getAliveThreads(CThread ***alive_threads, int *num_alive_threads)
 {
-  *alive_threads     = NULL;
+  *alive_threads     = nullptr;
   *num_alive_threads = alive_threads_.size();
 
   if (*num_alive_threads > 0) {
@@ -377,9 +383,10 @@ execute()
   return (*proc_)(data_);
 }
 
+//------
+
 CThread::
-CThread() :
- thread_(0)
+CThread()
 {
 }
 
@@ -834,7 +841,7 @@ blockSignals(int signum, ...)
 
   va_end(vargs);
 
-  int error = pthread_sigmask(SIG_BLOCK, &sigs, NULL);
+  int error = pthread_sigmask(SIG_BLOCK, &sigs, nullptr);
 
   if (error != 0) {
     CTHROW(string("pthread_sigmask: ") + strerror(error));
@@ -879,7 +886,7 @@ CThreadSharedMutex()
 {
   shared_mem_id_ = shmget(IPC_PRIVATE, sizeof(pthread_mutex_t), 0660);
 
-  shared_mem_ptr_ = (void *) shmat(shared_mem_id_, NULL, 0);
+  shared_mem_ptr_ = (void *) shmat(shared_mem_id_, nullptr, 0);
 
   mutex_ = (pthread_mutex_t *) shared_mem_ptr_;
 
@@ -959,6 +966,8 @@ unlock()
 
 #endif
 
+//------
+
 CThreadMutex::
 CThreadMutex(const char *id) :
  id_(id)
@@ -989,7 +998,7 @@ bool
 CThreadMutex::
 lock()
 {
-  if (debug_ && id_ != NULL)
+  if (debug_ && id_)
     std::cerr << id_ << " try lock" << std::endl;
 
   int error = pthread_mutex_lock(&mutex_);
@@ -1002,7 +1011,7 @@ lock()
 
   locked_ = true;
 
-  if (debug_ && id_ != NULL)
+  if (debug_ && id_)
     std::cerr << id_ << " locked" << std::endl;
 
   return true;
@@ -1034,7 +1043,7 @@ unlock()
 
   locked_ = false;
 
-  if (debug_ && id_ != NULL)
+  if (debug_ && id_)
     std::cerr << id_ << " unlocked" << std::endl;
 
   return true;
@@ -1229,10 +1238,12 @@ resetAttr()
   attr_inited_ = true;
 }
 
+//------
+
 CThreadReadWriteMutex::
 CThreadReadWriteMutex()
 {
-  int error = pthread_rdwr_init_np(&mutex_, NULL);
+  int error = pthread_rdwr_init_np(&mutex_, nullptr);
 
   if (error != 0) {
     CTHROW(string("pthread_rdwr_init_np: ") + strerror(error));
@@ -1325,6 +1336,8 @@ write_unlock()
 
   return true;
 }
+
+//------
 
 CThreadCondition::
 CThreadCondition(const char *id) :

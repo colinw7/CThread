@@ -25,15 +25,17 @@ class CThreadOnce {
  public:
   typedef void (*OnceProc)();
 
- private:
-  pthread_once_t once_;
-  OnceProc       proc_;
-
  public:
   CThreadOnce(OnceProc proc);
 
   void exec();
+
+ private:
+  pthread_once_t once_;
+  OnceProc       proc_;
 };
+
+//------
 
 // TODO: pthread_cleanup_push and pthread_cleanup_pop are macros !
 
@@ -58,11 +60,10 @@ class CThreadCleanup {
 };
 #endif
 
+//------
+
 template<typename T>
 class CThreadKeyData {
- private:
-  pthread_key_t key_;
-
  public:
   CThreadKeyData() {
     pthread_key_create(&key_, (void *) free_key);
@@ -77,7 +78,7 @@ class CThreadKeyData {
 
     pvalue = pthread_getspecific(key_);
 
-    if (pvalue == NULL) {
+    if (! pvalue) {
       CTHROW("No Data for Key");
       return T();
     }
@@ -90,7 +91,7 @@ class CThreadKeyData {
 
     pvalue = pthread_getspecific(key_);
 
-    if (pvalue == NULL) {
+    if (! pvalue) {
       pvalue = new T;
 
       pthread_setspecific(key_, (void *) pvalue);
@@ -103,33 +104,26 @@ class CThreadKeyData {
   static void free_key(void *pvalue) {
     delete pvalue;
   }
+
+ private:
+  pthread_key_t key_;
 };
 
+//------
+
 class CThreadArray {
- private:
-  static bool debug_;
-
-  int                              n_;
-  int                              num_active_;
-  CThreadMutex                    *thread_mutex_;
-  CThreadMutex                    *alive_mutex_;
-  CThreadCondition                *thread_cond_;
-  std::vector<CThreadArrayProc *>  procs_;
-  std::list<CThread *>             alive_threads_;
-  std::list<CThread *>             dead_threads_;
-
  public:
   static void setDebug(bool debug);
 
   CThreadArray(int n);
  ~CThreadArray();
 
-  bool startThread(CThreadProc proc, void *data = NULL);
+  bool startThread(CThreadProc proc, void *data=nullptr);
   bool startThread(CThreadArrayProc *proc);
 
   bool endThread(CThread *thread);
 
-  bool join(void **data = NULL);
+  bool join(void **data=nullptr);
 
   static void *executeCB(void *data);
 
@@ -145,16 +139,26 @@ class CThreadArray {
   void removeAliveThread(CThread *thread);
   bool joinAliveThreads(void **data);
   bool getAliveThreads(CThread ***alive_threads, int *num_alive_threads);
+
+ private:
+  static bool debug_;
+
+  int                              n_ { 0 };
+  int                              num_active_ { 0 };
+  CThreadMutex                    *thread_mutex_ { nullptr };
+  CThreadMutex                    *alive_mutex_ { nullptr };
+  CThreadCondition                *thread_cond_ { nullptr };
+  std::vector<CThreadArrayProc *>  procs_;
+  std::list<CThread *>             alive_threads_;
+  std::list<CThread *>             dead_threads_;
 };
 
-class CThreadArrayProc {
- protected:
-  CThreadArray *array_;
-  CThread      *thread_;
+//------
 
+class CThreadArrayProc {
  public:
   CThreadArrayProc(CThreadArray *array) :
-   array_(array), thread_(NULL) {
+   array_(array) {
   }
 
   virtual ~CThreadArrayProc() { }
@@ -165,32 +169,31 @@ class CThreadArrayProc {
 
   void *executeCB();
 
-  virtual void *execute() { return NULL; }
+  virtual void *execute() { return nullptr; }
+
+ protected:
+  CThreadArray *array_ { nullptr };
+  CThread      *thread_ { nullptr };
 };
 
-class CThreadArrayCProc : public CThreadArrayProc {
- private:
-  CThreadProc  proc_;
-  void        *data_;
+//------
 
+class CThreadArrayCProc : public CThreadArrayProc {
  public:
-  CThreadArrayCProc(CThreadArray *array, CThreadProc proc, void *data = NULL) :
+  CThreadArrayCProc(CThreadArray *array, CThreadProc proc, void *data=nullptr) :
    CThreadArrayProc(array), proc_(proc), data_(data) {
   }
 
   void *execute();
+
+ private:
+  CThreadProc  proc_;
+  void        *data_ { nullptr };
 };
 
+//------
+
 class CThread {
- private:
-  pthread_t thread_;
-
-  static pthread_attr_t attr_;
-  static bool           attr_inited_;
-
-  static int  num_threads_;
-  static bool debug_;
-
  public:
   static void setDebug(bool debug) { debug_ = debug; }
 
@@ -200,9 +203,9 @@ class CThread {
   virtual ~CThread();
 
   bool start();
-  bool start(CThreadProc proc, void *data = NULL);
+  bool start(CThreadProc proc, void *data=nullptr);
 
-  bool join(void **data = NULL);
+  bool join(void **data=nullptr);
   bool detach();
 
   bool cancel();
@@ -216,7 +219,7 @@ class CThread {
 
   bool operator==(const CThread &thread);
 
-  virtual void *execute() { return NULL; }
+  virtual void *execute() { return nullptr; }
 
   static void exit(void *data);
 
@@ -251,21 +254,22 @@ class CThread {
   static void            resetAttr();
 
   static void *executeCB(void *data);
+
+ private:
+  pthread_t thread_ { 0 };
+
+  static pthread_attr_t attr_;
+  static bool           attr_inited_;
+
+  static int  num_threads_;
+  static bool debug_;
 };
 
+//------
+
 class CThreadMutex {
- private:
-  const char      *id_;
-  pthread_mutex_t  mutex_;
-  bool             locked_;
-
-  static pthread_mutexattr_t attr_;
-  static bool                attr_inited_;
-
-  static bool debug_;
-
  public:
-  CThreadMutex(const char *id = NULL);
+  CThreadMutex(const char *id=nullptr);
  ~CThreadMutex();
 
   static void setDebug(bool debug) { debug_ = debug; }
@@ -293,14 +297,22 @@ class CThreadMutex {
  private:
   static pthread_mutexattr_t *getAttr();
   static void                 resetAttr();
+
+ private:
+  const char      *id_ { nullptr };
+  pthread_mutex_t  mutex_;
+  bool             locked_ { false };
+
+  static pthread_mutexattr_t attr_;
+  static bool                attr_inited_;
+
+  static bool debug_;
 };
+
+//------
 
 template<typename T>
 class CThreadMutexVar {
- private:
-  T            &value_;
-  CThreadMutex  mutex_;
-
  public:
   CThreadMutexVar(T value) : value_(value) { }
  ~CThreadMutexVar() { }
@@ -343,17 +355,19 @@ class CThreadMutexVar {
   CThreadMutexVar(CThreadMutexVar &var);
 
   CThreadMutexVar &operator=(CThreadMutexVar &var);
+
+ private:
+  T            &value_;
+  CThreadMutex  mutex_;
 };
 
-class CThreadAutoMutex {
- private:
-  CThreadMutex *mutex_;
-  bool          alloc_;
+//------
 
+class CThreadAutoMutex {
  public:
-  CThreadAutoMutex(CThreadMutex *mutex = NULL) :
+  CThreadAutoMutex(CThreadMutex *mutex=nullptr) :
    mutex_(mutex), alloc_(false) {
-    if (mutex_ == NULL) {
+    if (! mutex_) {
       mutex_ = new CThreadMutex;
       alloc_ = true;
     }
@@ -371,16 +385,16 @@ class CThreadAutoMutex {
   CThreadMutex *getMutex() {
     return mutex_;
   }
+
+ private:
+  CThreadMutex *mutex_ { nullptr };
+  bool          alloc_ { false };
 };
+
+//------
 
 #ifdef _POSIX_THREAD_PROCESS_SHARED
 class CThreadSharedMutex {
- private:
-  int              shared_mem_id_;
-  void            *shared_mem_ptr_;
-  pthread_mutex_t *mutex_;
-  bool             locked_;
-
  public:
   CThreadSharedMutex();
  ~CThreadSharedMutex();
@@ -392,15 +406,18 @@ class CThreadSharedMutex {
   pthread_mutex_t *getMutexP() { return mutex_; }
 
   bool locked() const { return locked_; }
+
+ private:
+  int              shared_mem_id_;
+  void            *shared_mem_ptr_ { nullptr };
+  pthread_mutex_t *mutex_ { nullptr };
+  bool             locked_ { false };
 };
 #endif
 
-class CThreadReadWriteMutex {
- private:
-  pthread_rdwr_t mutex_;
-  bool           read_locked_;
-  bool           write_locked_;
+//------
 
+class CThreadReadWriteMutex {
  public:
   CThreadReadWriteMutex();
  ~CThreadReadWriteMutex();
@@ -412,20 +429,18 @@ class CThreadReadWriteMutex {
 
   bool read_locked() const { return read_locked_; }
   bool write_locked() const { return write_locked_; }
+
+ private:
+  pthread_rdwr_t mutex_;
+  bool           read_locked_ { false };
+  bool           write_locked_ { false };
 };
 
+//------
+
 class CThreadCondition {
- private:
-  const char     *id_;
-  pthread_cond_t  cond_;
-
-  static pthread_condattr_t attr_;
-  static bool               attr_inited_;
-
-  static bool debug_;
-
  public:
-  CThreadCondition(const char *id = NULL);
+  CThreadCondition(const char *id=nullptr);
  ~CThreadCondition();
 
   static void setDebug(bool debug) { debug_ = debug; }
@@ -442,21 +457,26 @@ class CThreadCondition {
  private:
   static pthread_condattr_t *getAttr();
   static void                resetAttr();
+
+ private:
+  const char     *id_ { nullptr };
+  pthread_cond_t  cond_;
+
+  static pthread_condattr_t attr_;
+  static bool               attr_inited_;
+
+  static bool debug_;
 };
+
+//------
 
 // TODO: CThreadSharedCondition
 
 template<typename T>
 class CThreadVarCondition {
- private:
-  T                &value_;
-  CThreadMutex      mutex_;
-  CThreadCondition  condition_;
-  bool              signalled_;
-
  public:
   CThreadVarCondition(T &value) :
-   value_(value), signalled_(false) {
+   value_(value) {
   }
 
  ~CThreadVarCondition() { }
@@ -512,13 +532,17 @@ class CThreadVarCondition {
 
     return os;
   }
+
+ private:
+  T                &value_;
+  CThreadMutex      mutex_;
+  CThreadCondition  condition_;
+  bool              signalled_ { false };
 };
 
-class CThreadFile {
- private:
-  FILE *fp_;
-  bool  locked_;
+//------
 
+class CThreadFile {
  public:
   CThreadFile(FILE *fp) : fp_(fp) { }
  ~CThreadFile();
@@ -526,6 +550,10 @@ class CThreadFile {
   bool lock();
   bool try_lock();
   bool unlock();
+
+ private:
+  FILE *fp_ { nullptr };
+  bool  locked_ { false };
 };
 
 #endif

@@ -12,6 +12,8 @@ class CThreadPoolProc {
   virtual void *execute() = 0;
 };
 
+//-----
+
 class CThreadPool {
  public:
   CThreadPool(unsigned int num_threads, unsigned int max_num_workers, bool do_not_block);
@@ -29,10 +31,10 @@ class CThreadPool {
   bool isDead() const;
 
  private:
-  unsigned int                   max_num_procs_;
-  bool                           do_not_block_;
-  bool                           in_destroy_;
-  bool                           shutdown_;
+  unsigned int                   max_num_procs_ { 0 };
+  bool                           do_not_block_ { false };
+  bool                           in_destroy_ { false };
+  bool                           shutdown_ { false };
   CThreadMutex                   mutex_;
   CThreadCondition               not_empty_cond_; // signal when queue not empty
   CThreadCondition               not_full_cond_;  // signal when queue not full
@@ -40,6 +42,8 @@ class CThreadPool {
   std::vector<CThread *>         threads_;
   std::vector<CThreadPoolProc *> procs_;
 };
+
+//-----
 
 class CThreadPoolCProc : public CThreadPoolProc {
  public:
@@ -51,7 +55,7 @@ class CThreadPoolCProc : public CThreadPoolProc {
 
  private:
   CThreadProc  proc_;
-  void        *data_;
+  void        *data_ { nullptr };
 };
 
 #endif

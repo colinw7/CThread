@@ -1,12 +1,9 @@
 #include <CThreadPool.h>
 #include <CThread.h>
-#include <CFuncs.h>
-#include <algorithm>
 
 CThreadPool::
 CThreadPool(unsigned int num_threads, unsigned int max_num_procs, bool do_not_block) :
- max_num_procs_(max_num_procs), do_not_block_(do_not_block),
- in_destroy_(false), shutdown_(false)
+ max_num_procs_(max_num_procs), do_not_block_(do_not_block)
 {
   for (unsigned int i = 0; i < num_threads; ++i) {
     CThread *thread = new CThread;
@@ -20,7 +17,8 @@ CThreadPool(unsigned int num_threads, unsigned int max_num_procs, bool do_not_bl
 CThreadPool::
 ~CThreadPool()
 {
-  for_each(threads_.begin(), threads_.end(), CDeletePointer());
+  for (auto &thread : threads_)
+    delete thread;
 }
 
 bool
