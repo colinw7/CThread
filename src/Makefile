@@ -25,7 +25,7 @@ CPP_OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CPP_SRC))
 C_OBJS = $(patsubst %.c,$(OBJ_DIR)/%.o,$(C_SRC))
 
 CPPFLAGS = \
--std=c++11 \
+-std=c++14 \
 $(CDEBUG) \
 -I$(INC_DIR) \
 -I../../CThread/include \
