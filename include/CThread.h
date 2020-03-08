@@ -102,7 +102,7 @@ class CThreadKeyData {
 
  private:
   static void free_key(void *pvalue) {
-    delete pvalue;
+    delete (T *) pvalue;
   }
 
  private:

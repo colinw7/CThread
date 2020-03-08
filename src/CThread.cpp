@@ -1345,8 +1345,12 @@ CThreadCondition(const char *id) :
 {
   int error = pthread_cond_init(&cond_, getAttr());
 
-  if (error != 0)
-    CTHROW(string("pthread_cond_init: ") + strerror(error));
+  if (error != 0) {
+    if (id_)
+      CTHROW(string("pthread_cond_init: ") + id_ + " " + strerror(error));
+    else
+      CTHROW(string("pthread_cond_init: ") + strerror(error));
+  }
 
   resetAttr();
 }
@@ -1470,6 +1474,8 @@ resetAttr()
 
   attr_inited_ = true;
 }
+
+//------
 
 bool
 CThreadFile::
