@@ -65,12 +65,15 @@ class CThreadCleanup {
 template<typename T>
 class CThreadKeyData {
  public:
+  using CreateProc = void (*)(void *);
+
+ public:
   CThreadKeyData() {
-    pthread_key_create(&key_, (void *) free_key);
+    pthread_key_create(&key_, (CreateProc) free_key);
   }
 
  ~CThreadKeyData() {
-    pthread_key_delete(&key_);
+    pthread_key_delete(key_);
   }
 
   T getValue() {
@@ -534,10 +537,10 @@ class CThreadVarCondition {
   }
 
  private:
-  T                &value_;
-  CThreadMutex      mutex_;
-  CThreadCondition  condition_;
-  bool              signalled_ { false };
+  T&               value_;
+  CThreadMutex     mutex_;
+  CThreadCondition condition_;
+  bool             signalled_ { false };
 };
 
 //------
@@ -552,7 +555,7 @@ class CThreadFile {
   bool unlock();
 
  private:
-  FILE *fp_ { nullptr };
+  FILE *fp_     { nullptr };
   bool  locked_ { false };
 };
 
