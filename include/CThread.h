@@ -69,7 +69,7 @@ class CThreadKeyData {
 
  public:
   CThreadKeyData() {
-    pthread_key_create(&key_, (CreateProc) free_key);
+    pthread_key_create(&key_, CreateProc(free_key));
   }
 
  ~CThreadKeyData() {
@@ -97,7 +97,7 @@ class CThreadKeyData {
     if (! pvalue) {
       pvalue = new T;
 
-      pthread_setspecific(key_, (void *) pvalue);
+      pthread_setspecific(key_, reinterpret_cast<void *>(pvalue));
    }
 
     *pvalue = value;
@@ -105,7 +105,7 @@ class CThreadKeyData {
 
  private:
   static void free_key(void *pvalue) {
-    delete (T *) pvalue;
+    delete reinterpret_cast<T *>(pvalue);
   }
 
  private:

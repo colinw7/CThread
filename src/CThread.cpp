@@ -20,7 +20,6 @@ extern "C" {
 #include <CThrow.h>
 
 using std::string;
-using std::list;
 
 bool                CThreadArray::debug_       = false;
 
@@ -160,7 +159,7 @@ startThread1(CThreadArrayProc *proc)
 
   //------
 
-  if (! thread->start(&CThreadArray::executeCB, (void *) proc))
+  if (! thread->start(&CThreadArray::executeCB, static_cast<void *>(proc)))
     endThread(thread);
 
   return true;
@@ -270,13 +269,13 @@ CThreadArray::
 getDeadThreads(CThread ***dead_threads, int *num_dead_threads)
 {
   *dead_threads     = nullptr;
-  *num_dead_threads = dead_threads_.size();
+  *num_dead_threads = int(dead_threads_.size());
 
   if (*num_dead_threads > 0) {
-    *dead_threads = new CThread * [*num_dead_threads];
+    *dead_threads = new CThread * [uint(*num_dead_threads)];
 
-    list<CThread *>::iterator pthread1 = dead_threads_.begin();
-    list<CThread *>::iterator pthread2 = dead_threads_.end();
+    auto pthread1 = dead_threads_.begin();
+    auto pthread2 = dead_threads_.end();
 
     int i = 0;
 
@@ -335,13 +334,13 @@ CThreadArray::
 getAliveThreads(CThread ***alive_threads, int *num_alive_threads)
 {
   *alive_threads     = nullptr;
-  *num_alive_threads = alive_threads_.size();
+  *num_alive_threads = int(alive_threads_.size());
 
   if (*num_alive_threads > 0) {
-    *alive_threads = new CThread * [*num_alive_threads];
+    *alive_threads = new CThread * [uint(*num_alive_threads)];
 
-    list<CThread *>::iterator pthread1 = alive_threads_.begin();
-    list<CThread *>::iterator pthread2 = alive_threads_.end();
+    auto pthread1 = alive_threads_.begin();
+    auto pthread2 = alive_threads_.end();
 
     int i = 0;
 
@@ -358,7 +357,7 @@ void *
 CThreadArray::
 executeCB(void *data)
 {
-  CThreadArrayProc *proc = (CThreadArrayProc *) data;
+  CThreadArrayProc *proc = static_cast<CThreadArrayProc *>(data);
 
   return proc->executeCB();
 }
@@ -409,7 +408,7 @@ bool
 CThread::
 start()
 {
-  return start(&CThread::executeCB, (void *) this);
+  return start(&CThread::executeCB, static_cast<void *>(this));
 }
 
 bool
@@ -422,8 +421,7 @@ start(CThreadProc proc, void *data)
   int error = pthread_create(&thread_, getAttr(), proc, data);
 
   if (error != 0) {
-    CTHROW(string("pthread_create: ") + strerror(error));
-
+    CTHROW(std::string("pthread_create: ") + strerror(error));
     return false;
   }
 
@@ -441,7 +439,7 @@ void *
 CThread::
 executeCB(void *data)
 {
-  CThread *thread = (CThread *) data;
+  CThread *thread = reinterpret_cast<CThread *>(data);
 
   return thread->execute();
 }
@@ -456,7 +454,7 @@ join(void **data)
   int error = pthread_join(thread_, data);
 
   if (error != 0 && error != EINVAL) {
-    CTHROW(string("pthread_join: ") + strerror(error));
+    CTHROW(std::string("pthread_join: ") + strerror(error));
     return false;
   }
 
@@ -473,7 +471,7 @@ detach()
   int error = pthread_detach(thread_);
 
   if (error != 0) {
-    CTHROW(string("pthread_detach: ") + strerror(error));
+    CTHROW(std::string("pthread_detach: ") + strerror(error));
     return false;
   }
 
@@ -492,7 +490,7 @@ cancel()
   if (error == ESRCH) error = 0;
 
   if (error != 0) {
-    CTHROW(string("pthread_cancel: ") + strerror(error));
+    CTHROW(std::string("pthread_cancel: ") + strerror(error));
     return false;
   }
 
@@ -516,7 +514,7 @@ kill(int signal)
   int error = pthread_kill(thread_, signal);
 
   if (error != 0) {
-    CTHROW(string("pthread_kill: ") + strerror(error));
+    CTHROW(std::string("pthread_kill: ") + strerror(error));
     return false;
   }
 
@@ -535,7 +533,7 @@ setCancelState(int state)
   int error = pthread_setcancelstate(state, &last_state);
 
   if (error != 0) {
-    CTHROW(string("pthread_setcancelstate: ") + strerror(error));
+    CTHROW(std::string("pthread_setcancelstate: ") + strerror(error));
     return false;
   }
 
@@ -554,7 +552,7 @@ setCancelType(int type)
   int error = pthread_setcanceltype(type, &last_type);
 
   if (error != 0) {
-    CTHROW(string("pthread_setcanceltype: ") + strerror(error));
+    CTHROW(std::string("pthread_setcanceltype: ") + strerror(error));
     return false;
   }
 
@@ -582,7 +580,7 @@ setDetachState(int state)
   int error = pthread_attr_setdetachstate(getAttr(), state);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_setdetachstate: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_setdetachstate: ") + strerror(error));
     return false;
   }
 
@@ -596,7 +594,7 @@ getDetachState(int *state)
   int error = pthread_attr_getdetachstate(getAttr(), state);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_getdetachstate: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_getdetachstate: ") + strerror(error));
     return false;
   }
 
@@ -611,7 +609,7 @@ setScope(int scope)
   int error = pthread_attr_setscope(getAttr(), scope);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_setscope: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_setscope: ") + strerror(error));
     return false;
   }
 
@@ -629,7 +627,7 @@ getScope(int *scope)
   int error = pthread_attr_getscope(getAttr(), scope);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_getscope: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_getscope: ") + strerror(error));
     return false;
   }
 
@@ -648,11 +646,11 @@ getStack(void **addr, uint *size)
   int error = pthread_attr_getstack(getAttr(), addr, &size1);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_getstack: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_getstack: ") + strerror(error));
     return false;
   }
 
-  *size = size1;
+  *size = uint(size1);
 
   return false;
 }
@@ -664,7 +662,7 @@ setStack(void *addr, uint size)
   int error = pthread_attr_setstack(getAttr(), addr, size);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_setstack: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_setstack: ") + strerror(error));
     return false;
   }
 
@@ -681,7 +679,7 @@ setSchedulePolicy(int policy, int priority)
   int error = pthread_attr_setschedpolicy(getAttr(), policy);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_setschedpolicy: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_setschedpolicy: ") + strerror(error));
     return false;
   }
 
@@ -695,7 +693,7 @@ setSchedulePolicy(int policy, int priority)
   error = pthread_attr_setschedparam(getAttr(), &sched_param);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_setschedparam: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_setschedparam: ") + strerror(error));
     return false;
   }
 
@@ -709,7 +707,7 @@ getSchedulePolicy(int *policy)
   int error = pthread_attr_getschedpolicy(getAttr(), policy);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_getschedpolicy: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_getschedpolicy: ") + strerror(error));
     return false;
   }
 
@@ -723,7 +721,7 @@ setInheritSchedule(int inherit)
   int error = pthread_attr_setinheritsched(getAttr(), inherit);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_setinheritsched: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_setinheritsched: ") + strerror(error));
     return false;
   }
 
@@ -737,7 +735,7 @@ getInheritSchedule(int *inherit)
   int error = pthread_attr_getinheritsched(getAttr(), inherit);
 
   if (error != 0) {
-    CTHROW(string("pthread_attr_getinheritsched: ") + strerror(error));
+    CTHROW(std::string("pthread_attr_getinheritsched: ") + strerror(error));
     return false;
   }
 
@@ -779,7 +777,7 @@ updateSchedulePolicy(int policy, int priority)
   int error = pthread_setschedparam(thread_, policy, &sched_param);
 
   if (error != 0) {
-    CTHROW(string("pthread_setschedparam: ") + strerror(error));
+    CTHROW(std::string("pthread_setschedparam: ") + strerror(error));
     return false;
   }
 
@@ -795,7 +793,7 @@ getSchedulePolicy(int *policy, int *priority)
   int error = pthread_getschedparam(thread_, policy, &sched_param);
 
   if (error != 0) {
-    CTHROW(string("pthread_getschedparam: ") + strerror(error));
+    CTHROW(std::string("pthread_getschedparam: ") + strerror(error));
     return false;
   }
 
@@ -844,7 +842,7 @@ blockSignals(int signum, ...)
   int error = pthread_sigmask(SIG_BLOCK, &sigs, nullptr);
 
   if (error != 0) {
-    CTHROW(string("pthread_sigmask: ") + strerror(error));
+    CTHROW(std::string("pthread_sigmask: ") + strerror(error));
     return false;
   }
 
@@ -858,7 +856,7 @@ atFork(void (*prepareProc)(),  void (*parentProc)(), void (*childProc)())
   int error = pthread_atfork(prepareProc, parentProc, childProc);
 
   if (error != 0) {
-    CTHROW(string("pthread_atfork: ") + strerror(error));
+    CTHROW(std::string("pthread_atfork: ") + strerror(error));
     return false;
   }
 
@@ -886,9 +884,9 @@ CThreadSharedMutex()
 {
   shared_mem_id_ = shmget(IPC_PRIVATE, sizeof(pthread_mutex_t), 0660);
 
-  shared_mem_ptr_ = (void *) shmat(shared_mem_id_, nullptr, 0);
+  shared_mem_ptr_ = static_cast<void *>(shmat(shared_mem_id_, nullptr, 0));
 
-  mutex_ = (pthread_mutex_t *) shared_mem_ptr_;
+  mutex_ = reinterpret_cast<pthread_mutex_t *>(shared_mem_ptr_);
 
   pthread_mutexattr_t attr_t;
 
@@ -899,7 +897,7 @@ CThreadSharedMutex()
   int error = pthread_mutex_init(mutex_, &attr_t);
 
   if (error != 0) {
-    CTHROW(string("pthread_mutex_init: ") + strerror(error));
+    CTHROW(std::string("pthread_mutex_init: ") + strerror(error));
     return;
   }
 
@@ -915,7 +913,7 @@ CThreadSharedMutex::
   int error = pthread_mutex_destroy(mutex_);
 
   if (error != 0)
-    CTHROW(string("pthread_mutex_destroy: ") + strerror(error));
+    CTHROW(std::string("pthread_mutex_destroy: ") + strerror(error));
 }
 
 bool
@@ -925,8 +923,7 @@ lock()
   int error = pthread_mutex_lock(mutex_);
 
   if (error != 0) {
-    CTHROW(string("pthread_mutex_lock: ") + strerror(error));
-
+    CTHROW(std::string("pthread_mutex_lock: ") + strerror(error));
     return false;
   }
 
@@ -954,8 +951,7 @@ unlock()
   int error = pthread_mutex_unlock(mutex_);
 
   if (error != 0) {
-    CTHROW(string("pthread_mutex_unlock: ") + strerror(error));
-
+    CTHROW(std::string("pthread_mutex_unlock: ") + strerror(error));
     return false;
   }
 
@@ -975,7 +971,7 @@ CThreadMutex(const char *id) :
   int error = pthread_mutex_init(&mutex_, getAttr());
 
   if (error != 0) {
-    CTHROW(string("pthread_mutex_init: ") + strerror(error));
+    CTHROW(std::string("pthread_mutex_init: ") + strerror(error));
     return;
   }
 
@@ -991,7 +987,7 @@ CThreadMutex::
   int error = pthread_mutex_destroy(&mutex_);
 
   if (error != 0)
-    CTHROW(string("pthread_mutex_destroy: ") + strerror(error));
+    CTHROW(std::string("pthread_mutex_destroy: ") + strerror(error));
 }
 
 bool
@@ -1004,8 +1000,7 @@ lock()
   int error = pthread_mutex_lock(&mutex_);
 
   if (error != 0) {
-    CTHROW(string("pthread_mutex_lock: ") + strerror(error));
-
+    CTHROW(std::string("pthread_mutex_lock: ") + strerror(error));
     return false;
   }
 
@@ -1036,8 +1031,7 @@ unlock()
   int error = pthread_mutex_unlock(&mutex_);
 
   if (error != 0) {
-    CTHROW(string("pthread_mutex_unlock: ") + strerror(error));
-
+    CTHROW(std::string("pthread_mutex_unlock: ") + strerror(error));
     return false;
   }
 
@@ -1059,7 +1053,7 @@ setPriorityProtect()
   int error = pthread_mutex_getprotocol(getAttr(), &protocol);
 
   if (error != 0) {
-    CTHROW(string("pthread_mutex_getprotocol: ") + strerror(error));
+    CTHROW(std::string("pthread_mutex_getprotocol: ") + strerror(error));
     return false;
   }
 
@@ -1067,7 +1061,7 @@ setPriorityProtect()
     error = pthread_mutex_setprotocol(getAttr(), PTHREAD_PRIO_PROTECT);
 
     if (error != 0) {
-      CTHROW(string("pthread_mutex_setprotocol: ") + strerror(error));
+      CTHROW(std::string("pthread_mutex_setprotocol: ") + strerror(error));
       return false;
     }
   }
@@ -1105,7 +1099,7 @@ getProtocol(int *protocol)
   int error = pthread_mutexattr_getprotocol(getAttr(), protocol);
 
   if (error != 0) {
-    CTHROW(string("pthread_mutexattr_getprotocol: ") + strerror(error));
+    CTHROW(std::string("pthread_mutexattr_getprotocol: ") + strerror(error));
     return false;
   }
 
@@ -1131,7 +1125,7 @@ setProtocol(int protocol)
     int error = pthread_mutexattr_setprotocol(getAttr(), protocol);
 
     if (error != 0) {
-      CTHROW(string("pthread_mutexattr_setprotocol: ") + strerror(error));
+      CTHROW(std::string("pthread_mutexattr_setprotocol: ") + strerror(error));
       return false;
     }
   }
@@ -1152,7 +1146,7 @@ getPriorityCeiling(int *ceiling)
   int error = pthread_mutexattr_getprioceiling(getAttr(), ceiling);
 
   if (error != 0) {
-    CTHROW(string("pthread_mutexattr_getprioceiling: ") + strerror(error));
+    CTHROW(std::string("pthread_mutexattr_getprioceiling: ") + strerror(error));
     return false;
   }
 
@@ -1178,7 +1172,7 @@ setPriorityCeiling(int ceiling)
     int error = pthread_mutexattr_setprioceiling(getAttr(), ceiling);
 
     if (error != 0) {
-      CTHROW(string("pthread_mutexattr_setprioceiling: ") + strerror(error));
+      CTHROW(std::string("pthread_mutexattr_setprioceiling: ") + strerror(error));
       return false;
     }
   }
@@ -1198,7 +1192,7 @@ getProcessShared(int *shared)
   int error = pthread_mutexattr_getpshared(getAttr(), shared);
 
   if (error != 0) {
-    CTHROW(string("pthread_mutexattr_getpshared: ") + strerror(error));
+    CTHROW(std::string("pthread_mutexattr_getpshared: ") + strerror(error));
     return false;
   }
 
@@ -1212,7 +1206,7 @@ setProcessShared(int shared)
   int error = pthread_mutexattr_setpshared(getAttr(), shared);
 
   if (error != 0) {
-    CTHROW(string("pthread_mutexattr_setpshared: ") + strerror(error));
+    CTHROW(std::string("pthread_mutexattr_setpshared: ") + strerror(error));
     return false;
   }
 
@@ -1246,7 +1240,7 @@ CThreadReadWriteMutex()
   int error = pthread_rdwr_init_np(&mutex_, nullptr);
 
   if (error != 0) {
-    CTHROW(string("pthread_rdwr_init_np: ") + strerror(error));
+    CTHROW(std::string("pthread_rdwr_init_np: ") + strerror(error));
     return;
   }
 
@@ -1266,7 +1260,7 @@ CThreadReadWriteMutex::
   int error = pthread_rdwr_destroy_np(&mutex_);
 
   if (error != 0)
-    CTHROW(string("pthread_rdwr_destroy_np: ") + strerror(error));
+    CTHROW(std::string("pthread_rdwr_destroy_np: ") + strerror(error));
 }
 
 bool
@@ -1276,8 +1270,7 @@ read_lock()
   int error = pthread_rdwr_rlock_np(&mutex_);
 
   if (error != 0) {
-    CTHROW(string("pthread_rdwr_rlock_np: ") + strerror(error));
-
+    CTHROW(std::string("pthread_rdwr_rlock_np: ") + strerror(error));
     return false;
   }
 
@@ -1293,8 +1286,7 @@ write_lock()
   int error = pthread_rdwr_wlock_np(&mutex_);
 
   if (error != 0) {
-    CTHROW(string("pthread_rdwr_wlock_np: ") + strerror(error));
-
+    CTHROW(std::string("pthread_rdwr_wlock_np: ") + strerror(error));
     return false;
   }
 
@@ -1310,8 +1302,7 @@ read_unlock()
   int error = pthread_rdwr_runlock_np(&mutex_);
 
   if (error != 0) {
-    CTHROW(string("pthread_rdwr_runlock_np: ") + strerror(error));
-
+    CTHROW(std::string("pthread_rdwr_runlock_np: ") + strerror(error));
     return false;
   }
 
@@ -1327,8 +1318,7 @@ write_unlock()
   int error = pthread_rdwr_wunlock_np(&mutex_);
 
   if (error != 0) {
-    CTHROW(string("pthread_rdwr_wunlock_np: ") + strerror(error));
-
+    CTHROW(std::string("pthread_rdwr_wunlock_np: ") + strerror(error));
     return false;
   }
 
@@ -1347,9 +1337,9 @@ CThreadCondition(const char *id) :
 
   if (error != 0) {
     if (id_)
-      CTHROW(string("pthread_cond_init: ") + id_ + " " + strerror(error));
+      CTHROW(std::string("pthread_cond_init: ") + id_ + " " + strerror(error));
     else
-      CTHROW(string("pthread_cond_init: ") + strerror(error));
+      CTHROW(std::string("pthread_cond_init: ") + strerror(error));
   }
 
   resetAttr();
@@ -1361,7 +1351,7 @@ CThreadCondition::
   int error = pthread_cond_destroy(&cond_);
 
   if (error != 0)
-    CTHROW(string("pthread_cond_destroy: ") + strerror(error));
+    CTHROW(std::string("pthread_cond_destroy: ") + strerror(error));
 }
 
 bool
@@ -1374,8 +1364,7 @@ wait(CThreadMutex &mutex)
   int error = pthread_cond_wait(&cond_, mutex.getMutexP());
 
   if (error != 0) {
-    CTHROW(string("pthread_cond_wait: ") + strerror(error));
-
+    CTHROW(std::string("pthread_cond_wait: ") + strerror(error));
     return false;
   }
 
@@ -1392,8 +1381,7 @@ timed_wait(CThreadMutex &mutex, struct timespec *time)
   int error = pthread_cond_timedwait(&cond_, mutex.getMutexP(), time);
 
   if (error != 0) {
-    CTHROW(string("pthread_cond_wait: ") + strerror(error));
-
+    CTHROW(std::string("pthread_cond_wait: ") + strerror(error));
     return false;
   }
 
@@ -1407,7 +1395,7 @@ signal()
   int error = pthread_cond_signal(&cond_);
 
   if (error != 0) {
-    CTHROW(string("pthread_cond_signal: ") + strerror(error));
+    CTHROW(std::string("pthread_cond_signal: ") + strerror(error));
     return false;
   }
 
@@ -1421,7 +1409,7 @@ broadcast()
   int error = pthread_cond_broadcast(&cond_);
 
   if (error != 0) {
-    CTHROW(string("pthread_cond_broadcast: ") + strerror(error));
+    CTHROW(std::string("pthread_cond_broadcast: ") + strerror(error));
     return false;
   }
 
@@ -1435,7 +1423,7 @@ getProcessShared(int *shared)
   int error = pthread_condattr_getpshared(getAttr(), shared);
 
   if (error != 0) {
-    CTHROW(string("pthread_condattr_getpshared: ") + strerror(error));
+    CTHROW(std::string("pthread_condattr_getpshared: ") + strerror(error));
     return false;
   }
 
@@ -1449,7 +1437,7 @@ setProcessShared(int shared)
   int error = pthread_condattr_setpshared(getAttr(), shared);
 
   if (error != 0) {
-    CTHROW(string("pthread_condattr_setpshared: ") + strerror(error));
+    CTHROW(std::string("pthread_condattr_setpshared: ") + strerror(error));
     return false;
   }
 

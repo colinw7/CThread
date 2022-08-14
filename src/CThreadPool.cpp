@@ -8,7 +8,7 @@ CThreadPool(unsigned int num_threads, unsigned int max_num_procs, bool do_not_bl
   for (unsigned int i = 0; i < num_threads; ++i) {
     CThread *thread = new CThread;
 
-    thread->start(&CThreadPool::process, (void *) this);
+    thread->start(&CThreadPool::process, static_cast<void *>(this));
 
     threads_.push_back(thread);
   }
@@ -38,7 +38,7 @@ addThread(CThreadPoolProc *proc)
 {
   mutex_.lock();
 
-  unsigned int num_procs = procs_.size();
+  auto num_procs = procs_.size();
 
   /* no space and this caller doesn't want to wait */
 
@@ -92,7 +92,7 @@ destroy(bool wait)
   /* If the wait flag is set, wait for procs to drain queue */
 
   if (wait) {
-    unsigned int num_procs = procs_.size();
+    auto num_procs = procs_.size();
 
     while (num_procs > 0) {
       empty_cond_.wait(mutex_);
@@ -112,10 +112,10 @@ destroy(bool wait)
 
   /* Wait for procs to exit */
 
-  unsigned int num_threads = threads_.size();
+  auto num_threads = threads_.size();
 
   for (unsigned int i = 0; i < num_threads; ++i)
-    threads_[i]->join(NULL);
+    threads_[i]->join(nullptr);
 
   /* Now free pool structures */
 
@@ -126,12 +126,12 @@ void *
 CThreadPool::
 process(void *data)
 {
-  CThreadPool *pool = (CThreadPool *) data;
+  CThreadPool *pool = reinterpret_cast<CThreadPool *>(data);
 
   for (;;)
     pool->processNext();
 
-  return NULL;
+  return nullptr;
 }
 
 bool
@@ -142,7 +142,7 @@ processNext()
 
   /* Wait for procs to become available */
 
-  unsigned int num_procs = procs_.size();
+  auto num_procs = procs_.size();
 
   while (num_procs == 0 && ! shutdown_) {
     not_empty_cond_.wait(mutex_);
@@ -155,7 +155,7 @@ processNext()
   if (shutdown_) {
     mutex_.unlock();
 
-    CThread::exit(NULL);
+    CThread::exit(nullptr);
   }
 
   /* Get to work, dequeue the next item */
