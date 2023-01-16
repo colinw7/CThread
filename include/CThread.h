@@ -187,7 +187,7 @@ class CThreadArrayCProc : public CThreadArrayProc {
    CThreadArrayProc(array), proc_(proc), data_(data) {
   }
 
-  void *execute();
+  void *execute() override;
 
  private:
   CThreadProc  proc_;
