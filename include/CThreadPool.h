@@ -51,7 +51,7 @@ class CThreadPoolCProc : public CThreadPoolProc {
    proc_(proc), data_(data) {
   }
 
-  void *execute() { return (*proc_)(data_); }
+  void *execute() override { return (*proc_)(data_); }
 
  private:
   CThreadProc  proc_;
